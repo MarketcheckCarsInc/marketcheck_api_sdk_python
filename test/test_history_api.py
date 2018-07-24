@@ -39,6 +39,9 @@ class TestHistoryApi(unittest.TestCase):
         vins = ["1FTNE2CM2FKA81288","1GYS4BKJ8FR290257","3GYFNBE3XFS537500","1FT7W2BT5FEA75059","1FMCU9J90FUA21186"]
         fields = ["id","vin","seller_type","inventory_type","make","price","miles","scraped_at","status_date","is_searchable","seller_name","seller_name_o","domain_id","source","group_id","grouped_at zip","is_grouped","touch_count","is_duplicate","dealer_id","latitude","longitude","city state","data_source"]
         api_key = "YOUR API KEY"
+        missing_vins = ["2T2BK1RA1DC181616","1FTNE1DM0FKA52494","1FTEV1EG1FFB24493"]
+        more_record_vins = {"1FTEW1EF1FFA67753":6,"2T2BK1BA1DC181616":3}
+
         try:
             for vin in vins:
                 api_response = api_instance.history(vin, api_key=api_key)
@@ -56,6 +59,26 @@ class TestHistoryApi(unittest.TestCase):
                     assert hasattr(listing,"inventory_type")
                     assert hasattr(listing,"is_searchable")
                     assert hasattr(listing,"dealer_id")
+            ######      Validate pagination of history API    ######
+            for vin,page_limit in more_record_vins.iteritems():
+                for count in range(1,page_limit+1):
+                    api_response = api_instance.history(vin, api_key=api_key,page=count)
+                    last_seen_at_ary = []
+                    for vin_obj in api_response:
+                        last_seen_at_ary.append(vin_obj.last_seen_at)
+                    assert len(api_response) != 0
+                    assert last_seen_at_ary == sorted(last_seen_at_ary,reverse=True)
+                    assert len(api_response) == len(list(set(api_response)))
+                    if count != page_limit: assert len(api_response) == 50
+            #######     Validate pagination exceed error in history API   ######
+            # for vin,page_limit in more_record_vins.iteritems():
+            #     api_response = api_instance.history(vin, api_key=api_key,page=page_limit+1)
+            #     pdb.set_trace()
+            #     assert api_response.code == 422
+            ######      Validate error response when VIN is not present with us     ######
+            # for vin in missing_vins:
+            #     api_response = api_instance.history(vin, api_key=api_key)
+            #     pprint(api_response)
         except ApiException as e:
             print("Exception when calling HistoryApi->history: %s\n" % e)
         pass

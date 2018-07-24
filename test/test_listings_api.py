@@ -185,13 +185,32 @@ class TestListingsApi(unittest.TestCase):
             lat_lng_combo = list(itertools.product(latitudes,longitudes))
             vin_combo = list(itertools.product(vins,vins))
             taxonomy_vins_combo = list(itertools.product(taxonomy_vins,taxonomy_vins))
+            stats_fields = ["price","miles","dom"]
             sort_by_and_order_combo = list(itertools.product(sort_by,sort_orders))
             miles_range_combo = list(itertools.product(miles_ranges[:2],miles_ranges[-2:]))
             price_range_combo = list(itertools.product(price_ranges[:2],price_ranges[-2:]))
             dom_range_combo = list(itertools.product(dom_ranges[:2],dom_ranges[-2:]))
             sort_by_and_order_combo = list(itertools.product(sort_by,sort_orders))
             sort_by_fields_combo = list(itertools.product(sort_by[:2],sort_by[-2:],sort_orders))
-
+            ##########        validate stats           #############
+            for field in stats_fields:
+                api_response = api_instance.search(api_key=api_key,latitude=39.73,longitude=-104.99,radius=200,stats=field,start=0,rows=10,sort_by=field,sort_order="desc",car_type="used")
+                assert api_response.stats[field].has_key("sum")
+                assert api_response.stats[field].has_key("min")
+                assert api_response.stats[field].has_key("max")
+                assert api_response.stats[field].has_key("mean")
+                assert api_response.stats[field].has_key("count")
+                assert api_response.stats[field].has_key("median")
+                assert api_response.stats[field].has_key("stddev")
+                if field == "price": assert api_response.listings[0].price == api_response.stats[field]["max"]
+                if field == "miles": assert api_response.listings[0].miles == api_response.stats[field]["max"]
+                if field == "dom": assert api_response.listings[0].dom == api_response.stats[field]["max"]
+            ########        validate stats with multiple fields given     ########
+            api_response = api_instance.search(api_key=api_key,latitude=39.73,longitude=-104.99,radius=200,stats="price,miles,dom",start=1,rows=0,car_type="used")
+            assert hasattr(api_response,"stats")
+            assert api_response.stats.has_key(stats_fields[0])
+            assert api_response.stats.has_key(stats_fields[1])
+            assert api_response.stats.has_key(stats_fields[2])
             ######     validate near by response  #########
             ######## validate makes     ###########
             for make in makes:
